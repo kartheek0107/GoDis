@@ -1,0 +1,15 @@
+server:
+  host: "0.0.0.0"
+  port: 6379
+
+storage:
+  max_memory: "100MB"
+  eviction_policy: "lru"
+
+persistence:
+  aof_enabled: true
+  aof_filename: "appendonly.aof"
+  aof_fsync: "everysec"
+
+logging:
+  level: "info"
