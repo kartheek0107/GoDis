@@ -1,4 +1,4 @@
-# GoDiscat > README.md << 'EOF'
+
 <div align="center">
 
 # 🚀 GoDis
@@ -6,8 +6,6 @@
 ### **Go**lang + Re**dis** = Production-Ready In-Memory Key-Value Store
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 *A lightweight, high-performance in-memory key-value store built from scratch in Go, implementing core Redis functionality with thread-safe operations, LRU eviction, and AOF persistence.*
 
