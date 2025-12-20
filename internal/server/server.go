@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/kartheek0107/GoDis/internal/persistence"
 	"github.com/kartheek0107/GoDis/internal/protocol"
 	"github.com/kartheek0107/GoDis/internal/store"
 )
@@ -12,12 +13,14 @@ import (
 type Server struct {
 	addr  string
 	store *store.Store
+	aof   *persistence.AOF
 }
 
-func NewServer(addr string, store *store.Store) *Server {
+func NewServer(addr string, store *store.Store, aof *persistence.AOF) *Server {
 	return &Server{
 		addr:  addr,
 		store: store,
+		aof:   aof,
 	}
 }
 
@@ -27,6 +30,7 @@ func (s *Server) Start() error {
 		return err
 	}
 	fmt.Println("📡 GoDis is listening on %s\n", s.addr)
+	defer ln.Close()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -61,6 +65,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 				conn.Write([]byte("Wrong no.of arguments"))
 			}
 			s.store.Set(cmd[1], cmd[2])
+			if err := s.aof.Write(cmd); err != nil {
+				fmt.Println("Error writing to AOF:", err)
+				conn.Write([]byte("-ERR AOF write failed\r\n"))
+				break
+			}
 			conn.Write([]byte("+OK\r\n"))
 		case "GET":
 			if len(cmd) != 2 {
