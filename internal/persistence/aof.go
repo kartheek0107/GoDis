@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 )
 
 type AOF struct {
@@ -12,6 +13,8 @@ type AOF struct {
 	file *os.File
 	rd   *bufio.Reader
 	mu   sync.Mutex
+	c    chan []string  // in memory queue for AOF
+	wg   sync.WaitGroup // ensures file doesn't close before worker flushes
 }
 
 func NewAof(path string) (*AOF, error) {
@@ -19,29 +22,51 @@ func NewAof(path string) (*AOF, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &AOF{
+	aof := &AOF{
 		file: file,
 		rd:   bufio.NewReader(file),
-	}, nil
+		c:    make(chan []string, 1024),
+	}
+
+	aof.wg.Add(1)
+
+	return aof, nil
+}
+
+func (a *AOF) worker() {
+	defer a.wg.Done()
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case args, ok := <-a.c:
+			if !ok {
+				a.file.Sync()
+				return
+			}
+
+			resp := fmt.Sprintf("*%d\r\n", len(args))
+			for _, arg := range args {
+				resp += fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg)
+			}
+
+			a.file.WriteString(resp)
+
+		case <-ticker.C:
+			a.file.Sync()
+		}
+	}
 }
 
 func (a *AOF) Close() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	close(a.c)
+	a.wg.Wait()
 	return a.file.Close()
 }
 
 func (a *AOF) Write(args []string) error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	resp := fmt.Sprintf("*%d\r\n", len(args))
-	for _, arg := range args {
-		resp += fmt.Sprintf("$%d\r\n%s\r\n", len(arg), arg)
-	}
-	_, err := a.file.WriteString(resp)
-	if err != nil {
-		return err
-	}
-	return a.file.Sync()
+	a.c <- args
+	return nil
 }
