@@ -42,8 +42,29 @@ func main() {
 				break
 			}
 			// Execute the replayed command
-			if strings.ToUpper(cmd[0]) == "SET" {
+			// For simplicity we could just route to the server handler, but doing minimal replay here
+			switch strings.ToUpper(cmd[0]) {
+			case "SET":
 				cache.Set(cmd[1], cmd[2])
+			case "DEL":
+				cache.Delete(cmd[1])
+			case "LPUSH":
+				cache.LPush(cmd[1], cmd[2:]...)
+			case "RPUSH":
+				cache.RPush(cmd[1], cmd[2:]...)
+			case "LPOP":
+				cache.LPop(cmd[1])
+			case "RPOP":
+				cache.RPop(cmd[1])
+			case "HSET":
+				cache.HSet(cmd[1], cmd[2], cmd[3])
+			case "SADD":
+				cache.SAdd(cmd[1], cmd[2:]...)
+			case "PFADD":
+				cache.PfAdd(cmd[1], cmd[2:]...)
+			case "BF.ADD":
+				cache.BfAdd(cmd[1], cmd[2])
+			// Simplified heatmap replay for now, assuming args are valid integers from AOF
 			}
 		}
 		file.Close()
